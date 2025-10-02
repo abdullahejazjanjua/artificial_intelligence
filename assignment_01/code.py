@@ -28,6 +28,7 @@ def is_win_position(grid, player):
     # Check for diagonal win
     is_diag_win = np.all([grid[i, i] == player for i in range(grid_size)])
     is_other_diag_win = np.all([grid[i][grid_size - i - 1] == player for i in range(grid_size)])
+    
     # Check if a row or column win
     for i in range(grid_size):
         row = grid[i, :]
@@ -62,7 +63,7 @@ def generate_possible_combinations(grid, player):
         for jdx, col in enumerate(row):
             grid_copy = copy.deepcopy(grid)
             if col == "-":
-                grid_copy[idx][jdx] = player
+                grid_copy[idx][jdx] = player # avoid modifying the original grid
                 possible_states.append(grid_copy)
 
     return possible_states
@@ -79,9 +80,10 @@ def build_tree(grid, player=None):
 
     parent_node = Node(name=f"{counter}", state=grid, player=player)
     all_nodes.append(parent_node)
-    counter += 1
+    counter += 1 # Serves as a unique id for each node
 
     for node in all_nodes:
+        
         if node.player is not None and is_win_position(node.state, node.player):
             node.is_win = True
             continue
@@ -89,7 +91,8 @@ def build_tree(grid, player=None):
         if node.player is not None and is_draw(node.state):
             node.is_draw = True
             continue
-        
+
+       # Alternate between players. If no last player, then set x as the player 
         if node.player == "x":
             cur_player = "o"
         else:
@@ -163,7 +166,7 @@ def iterative_deepening(root, name_to_node, depth_limit=1):
         if name_to_node[node_name].is_win:
             return path, len(visited_nodes)
 
-        if (len(path) - 1) == depth_limit:
+        if (len(path) - 1) == depth_limit: # O-indexed depth
             return None, len(visited_nodes)
 
         for child_name in reversed(root[node_name]):
