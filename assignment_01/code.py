@@ -1,7 +1,8 @@
 import copy
 import time
-import numpy as np
 from collections import deque, defaultdict
+
+import numpy as np
 
 class Node:
     """
@@ -25,8 +26,8 @@ def is_win_position(grid, player):
     win_row_col = [player] * grid_size
 
     # Check for diagonal win
-    is_diag_win = all(grid[i, i] == player for i in range(grid_size))
-    is_other_diag_win = all(grid[i][grid_size - i - 1] == player for i in range(grid_size))
+    is_diag_win = np.all([grid[i, i] == player for i in range(grid_size)])
+    is_other_diag_win = np.all([grid[i][grid_size - i - 1] == player for i in range(grid_size)])
     # Check if a row or column win
     for i in range(grid_size):
         row = grid[i, :]
@@ -46,9 +47,9 @@ def is_draw(grid):
     """
     is_win_x = is_win_position(grid, "x")
     is_win_o = is_win_position(grid, "o")
-    is_draw = "-" not in grid
+    draw = not np.any(grid == "-")
 
-    return is_draw and not (is_win_x or is_win_o)
+    return draw and not (is_win_x or is_win_o)
 
 
 def generate_possible_combinations(grid, player):
@@ -84,14 +85,16 @@ def build_tree(grid, player=None):
         if node.player is not None and is_win_position(node.state, node.player):
             node.is_win = True
             continue
+
         if node.player is not None and is_draw(node.state):
             node.is_draw = True
             continue
-
+        
         if node.player == "x":
             cur_player = "o"
         else:
             cur_player = "x"
+
         possible_combs = generate_possible_combinations(node.state, player=cur_player)
 
         for possible_state in possible_combs:
@@ -108,135 +111,144 @@ def build_tree(grid, player=None):
     return tree, name_to_node, counter
 
 
-def traverse_tree(root, name_to_node, algo="bfs", depth_limit=1):
+def bfs(root, name_to_node):
     """
-    Traverses the game tree using BFS, DFS, or Iterative Deepening DFS to find
-    a winning path.
+    Performs bfs on the on the game tree returns the path to win state.
     """
-    assert algo in ["bfs", "dfs", "idfs"], "algo parametre must be one of [bfs, dfs, idfs]"
-    if algo == "idfs":
-        assert depth_limit > 0, "depth limit must be greater than 0"
-    assert root is not None
+    queue = deque([("0", ["0"])])
     visited_nodes = set()
+    while queue:
+        node_name, path = queue.popleft()
+        visited_nodes.add(node_name)
 
-    if algo == "bfs":
-        queue = deque([("0", ["0"])])
-        while queue:
-            node_name, path = queue.popleft()
-            visited_nodes.add(node_name)
+        if name_to_node[node_name].is_win:
+            return path, len(visited_nodes)
 
-            if name_to_node[node_name].is_win:
-                return path, len(visited_nodes)
-
-            for child_name in root[node_name]:
-                if child_name not in visited_nodes:
-                    queue.append((child_name, path + [child_name]))
-
-    elif algo == "dfs":
-        stack = [("0", ["0"])]
-        while stack:
-            node_name, path = stack.pop()
-            visited_nodes.add(node_name)
-            if name_to_node[node_name].is_win:
-                return path, len(visited_nodes)
-
-            for child_name in reversed(root[node_name]):
-                if child_name not in visited_nodes:
-                    stack.append((child_name, path + [child_name]))
-
-    elif algo == "idfs":
-        stack = [("0", ["0"])]
-        while stack:
-            node_name, path = stack.pop()
-            visited_nodes.add(node_name)
-
-            if name_to_node[node_name].is_win:
-                return path, len(visited_nodes)
-
-            if (len(path) - 1) == depth_limit:
-                return None, len(visited_nodes)
-
-            for child_name in reversed(root[node_name]):
-                if child_name not in visited_nodes:
-                    stack.append((child_name, path + [child_name]))
-
-    return None
+        for child_name in root[node_name]:
+            if child_name not in visited_nodes:
+                queue.append((child_name, path + [child_name]))
+    return None, None
 
 
-def main(grid, last_move_player):
+def dfs(root, name_to_node):
     """
-    Builds the game tree from the initial board state and performs BFS, DFS,
-    and iterative deepening DFS traversals to find winning paths.
+    Performs DFS on the game tree and returns the path to win state.
     """
-    tree, name_to_node, total_states = build_tree(grid, player=last_move_player)
+    stack = [("0", ["0"])]
+    visited_nodes = set()
+    while stack:
+        node_name, path = stack.pop()
+        visited_nodes.add(node_name)
+        if name_to_node[node_name].is_win:
+            return path, len(visited_nodes)
 
-    print(f"Total states found: {total_states}")
+        for child_name in reversed(root[node_name]):
+            if child_name not in visited_nodes:
+                stack.append((child_name, path + [child_name]))
 
-    print("Traversing with bfs")
+    return None, None
 
-    start = time.time()
-    path_to_win, num_nodes_visited = traverse_tree(tree, name_to_node, algo="bfs")
-    end = time.time()
 
-    print(f"bfs took: {end-start:.6f}s")
-    print(f"bfs visited {num_nodes_visited} nodes")
+def iterative_deepening(root, name_to_node, depth_limit=1):
+    """
+    Performs Iterative Depening on the game tree and returns a path
+    to win state
+    """
+    stack = [("0", ["0"])]
+    visited_nodes = set()
+    while stack:
+        node_name, path = stack.pop()
+        visited_nodes.add(node_name)
+
+        if name_to_node[node_name].is_win:
+            return path, len(visited_nodes)
+
+        if (len(path) - 1) == depth_limit:
+            return None, len(visited_nodes)
+
+        for child_name in reversed(root[node_name]):
+            if child_name not in visited_nodes:
+                stack.append((child_name, path + [child_name]))
+    return None, None
+
+
+def print_stats(method_name, name_to_node, num_nodes_visited,
+                path_to_win, time_taken):
+    """
+    Prints the stats of a provided method
+    """
+    print(f"{method_name} took: {time_taken:.6f}s")
+    print(f"{method_name} visited {num_nodes_visited} nodes")
 
     if path_to_win is None:
         print("No winning state found!")
     else:
         print(f"The win path: {path_to_win}")
         print("Optimal actions that lead to win: ")
-        for n in path_to_win:
-            print(name_to_node[n].state)
+        for node_name in path_to_win:
+            print(name_to_node[node_name].state)
             print()
     print()
 
-    print("Traversing with dfs")
+
+def main(grid, last_move_player=None, num_max_depth=8):
+    """
+    Builds the game tree from the initial board state and performs BFS, DFS,
+    and iterative deepening DFS traversals to find winning paths.
+    """
+    tree, name_to_node, total_states = build_tree(grid, last_move_player)
+
+    print(f"Total states found: {total_states}")
+    
+    print("Traversing with BFS")
     start = time.time()
-    path_to_win, num_nodes_visited = traverse_tree(tree, name_to_node, algo="dfs")
+    path_to_win, num_nodes_visited = bfs(tree, name_to_node)
     end = time.time()
+    print_stats("bfs", name_to_node, num_nodes_visited,
+                path_to_win, (end-start))
 
-    print(f"The win path: {path_to_win}")
-    print(f"dfs took: {end-start:.6f}s")
-    print(f"dfs visited {num_nodes_visited} nodes")
-
-    if path_to_win is None:
-        print("No winning state found within provided depth_limit")
-    else:
-        print(f"The win path: {path_to_win}")
-        print("Optimal actions that lead to win: ")
-        for n in path_to_win:
-            print(name_to_node[n].state)
-            print()
-    print()
-
-    print("Traversing with idfs")
+    print("Traversing with DFS")
     start = time.time()
-    path_to_win, num_nodes_visited = traverse_tree(tree, name_to_node, algo="idfs", 
-                                                   depth_limit=5)
-
+    path_to_win, num_nodes_visited = dfs(tree, name_to_node)
     end = time.time()
-
-    print(f"bfs took: {end-start:.6f}s")
-    print(f"bfs visited {num_nodes_visited} nodes")
-
-    if path_to_win is None:
-        print("No winning state found within provided depth_limit")
-    else:
-        print(f"The win path: {path_to_win}")
-        print("Optimal actions that lead to win: ")
-        for n in path_to_win:
-            print(name_to_node[n].state)
-            print()
+    print_stats("dfs", name_to_node, num_nodes_visited,
+                path_to_win, (end-start))
+    
+    print("Traversing with Iterative Deepening")
+    for depth in range(num_max_depth):
+        print(f"Trying depth: {depth}")
+        start = time.time()
+        path_to_win, num_nodes_visited = \
+            iterative_deepening(tree, name_to_node, depth_limit=depth)
+        end = time.time()
+        if path_to_win is not None:
+            print_stats("iterative Deepening", name_to_node, num_nodes_visited,
+                        path_to_win, (end-start))
+            break
 
     return 0
 
 
 if __name__ == "__main__":
+    print("===================================")
+    print("Using empty tic-tac-toe Grid")
+    print("===================================")
     grid = np.array([
         ["-", "-", "-"],
         ["-", "-", "-"],
         ["-", "-", "-"]
     ])
-    #print(is_win_position(grid, "x"))
-    main(grid=grid, last_move_player="o")
+    main(grid=grid)
+    print()
+
+
+    print("========================================")
+    print("Using partially filled tic-tac-toe Grid")
+    print("========================================")
+    grid = np.array([
+        ["x", "-", "x"],
+        ["-", "o", "-"],
+        ["-", "-", "-"]
+    ])
+    main(grid=grid, last_move_player="x")
+    print()
