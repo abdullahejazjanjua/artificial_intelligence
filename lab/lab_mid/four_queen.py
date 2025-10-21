@@ -16,8 +16,6 @@ def get_unassigned_row(grid, assignment):
             return row_idx
     return None
 
-
-
 def check_constraint_consistency(graph, grid, cell, value):
     for neighbour in graph[cell]:
         if grid[neighbour[0]][neighbour[1]] == value:
