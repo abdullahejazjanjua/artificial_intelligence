@@ -42,7 +42,7 @@ def a_star(start_node, goal_node):
             current_node_cost = path_cost + int(edge_cost)
             if neighbour not in visited or current_node_cost < cheapest_node_cost[neighbour]:
                 cheapest_node_cost[neighbour] = current_node_cost
-                pqueue.put([(heuristics[neighbour] + int(edge_cost)), neighbour, path + [neighbour], current_node_cost])
+                pqueue.put([(heuristics[neighbour] + current_node_cost), neighbour, path + [neighbour], current_node_cost])
     return None, None
 
 

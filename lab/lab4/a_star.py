@@ -8,7 +8,7 @@ def a_star(start_node, goal_node):
     pqueue = queue.PriorityQueue()
     visited = set()
     cheapest_node_path_cost = {}
-    
+
     # h(n) + g(n), n, path, path_cost
     pqueue.put([(heuristics[start_node] + 0), start_node, [start_node], 0])
     cheapest_node_path_cost[start_node] = 0
@@ -16,17 +16,17 @@ def a_star(start_node, goal_node):
         _, current_node, path, path_cost = pqueue.get()
         if current_node == goal_node:
             return path, path_cost
-        
+
         visited.add(current_node)
         for neighbour, edge_cost in graph[current_node]:
             edge_cost = int(edge_cost)
             current_node_cost = path_cost + edge_cost
-            
+
             if neighbour not in visited or current_node_cost < cheapest_node_path_cost[neighbour]:
                 cheapest_node_path_cost[neighbour] = current_node_cost
                 current_path = path + [neighbour]
-                pqueue.put([(heuristics[neighbour] + edge_cost), neighbour, current_path, current_node_cost])
-    
+                pqueue.put([(heuristics[neighbour] + current_node_cost), neighbour, current_path, current_node_cost])
+
     return None, None
 
 
