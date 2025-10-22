@@ -38,10 +38,11 @@ def to_tuple(grid: list[list[str]]):
 def A_star(grid: list[list[str]], goal_position: tuple[int, int]):
     pqueue = queue.PriorityQueue()
     visited = set()
-
+    cheapest_node_so_far = {}
     pqueue.put(
         [(calculate_hueristic(grid, goal_position) + 0), grid, [grid], 0]
     )
+    cheapest_node_so_far[to_tuple(grid)] = 0
 
     while not pqueue.empty():
         _, current_grid, path, path_cost = pqueue.get()
@@ -50,9 +51,10 @@ def A_star(grid: list[list[str]], goal_position: tuple[int, int]):
 
         visited.add(to_tuple(current_grid))
         for child_grid in generate_children(current_grid):
-            if to_tuple(child_grid) not in visited:
+            current_node_cost = path_cost + 1
+            if to_tuple(child_grid) not in visited or current_node_cost < cheapest_node_so_far[to_tuple(grid)]:
                 pqueue.put(
-                    [(calculate_hueristic(child_grid, goal_position) + path_cost + 1), child_grid, path + [child_grid], path_cost + 1]
+                    [(calculate_hueristic(child_grid, goal_position) + current_node_cost), child_grid, path + [child_grid], current_node_cost]
                 )
 
     return None, None
