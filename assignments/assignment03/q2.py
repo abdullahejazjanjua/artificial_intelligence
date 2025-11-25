@@ -29,7 +29,7 @@ DRIVING_COST = -1
 MAX_ITERS = 60
 DISCOUNT_FACTOR = 0.8
 
-VALUES= {
+VALUES = {
     "Top of the Hill": 0.0,
     "Rolling down the Hill": 0.0,
     "Bottom of the Hill": 0.0
