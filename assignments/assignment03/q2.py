@@ -29,10 +29,6 @@ DRIVING_COST = -1
 MAX_ITERS = 60
 DISCOUNT_FACTOR = 0.8
 
-N_s = len(STATES)
-N_a = len(ACTIONS)
-
-
 VALUES= {
     "Top of the Hill": 0.0,
     "Rolling down the Hill": 0.0,
