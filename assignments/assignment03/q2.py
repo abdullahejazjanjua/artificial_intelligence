@@ -75,9 +75,10 @@ def policy_iteration():
         s:"Don't Drive" for s in STATES
     }
     iterations = 0
+    ITERS = 2
     while True:
         # Value Iteration
-        for _ in range(MAX_ITERS):
+        for _ in range(ITERS):
             current_values = copy.deepcopy(VALUES)
 
             for state in STATES:
