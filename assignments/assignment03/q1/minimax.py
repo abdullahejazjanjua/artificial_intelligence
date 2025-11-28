@@ -50,11 +50,11 @@ def minimax(node: Node, is_maximize: bool, depth: int, alpha: float = float('-in
         for (row_idx, col_idx) in node.available_moves():
             node.make_move(row_idx, col_idx, PLAYER) # Make move for the maximizing player
             eval = minimax(node, False, depth - 1, alpha, beta) # Recurse to minimizing layer
-            node.undo_move(row_idx, col_idx) # Undo move (backtracking)
-            max_eval = max(max_eval, eval) # Update best score found
-            alpha = max(alpha, eval) # Update alpha (best score for Maximizer on current path)
+            node.undo_move(row_idx, col_idx) # Undo move
+            max_eval = max(max_eval, eval)
+            alpha = max(alpha, eval)
             if beta <= alpha:
-                break # Alpha-Beta Pruning occurs
+                break
         return max_eval
     # Minimizing Player's turn (Human)
     else:
@@ -78,7 +78,7 @@ def best_move(root: Node) -> Optional[int]:
     # Evaluate moves for the AI (PLAYER)
     for (row_idx, col_idx) in root.available_moves():
         root.make_move(row_idx, col_idx, PLAYER) # Move move
-        score = minimax(root, False, MAX_DEPTH) # Initial call to Minimax (starts with minimize layer)
+        score = minimax(root, False, MAX_DEPTH) # Initial call to Minimax
         root.undo_move(row_idx, col_idx) # Undo move
 
         # Track the move that yields the highest score
