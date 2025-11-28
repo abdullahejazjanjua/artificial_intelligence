@@ -6,7 +6,7 @@ class Node:
         self.parent = parent
         self.board = board
 
-    def is_terminal(self, player):
+    def is_terminal(self, player: int):
         H, W = self.board.shape
 
         for idx in range(H):
@@ -30,11 +30,11 @@ class Node:
         # Return true if no empty zeros remain on the board
         return np.all(self.board != 0)
 
-    def make_move(self, idx:int, jdx:int, player:int):
+    def make_move(self, idx: int, jdx: int, player: int):
         self.board[idx][jdx] = player
 
-    def undo_move(self, idx:int, jdx:int):
-        # Reset cell to 0 to backtrack state
+    def undo_move(self, idx: int, jdx: int):
+        # Reset move
         self.board[idx][jdx] = 0
 
     def available_moves(self) -> list[tuple[int, int]]:
