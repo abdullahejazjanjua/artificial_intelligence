@@ -33,7 +33,7 @@ for i in range(1, 11):
 plt.plot(range(1, 11), wcss, marker='o', linestyle='--')
 plt.show()
 
-model = KMeans(n_clusters=5, init='k-means++', random_state=42)
+model = KMeans(n_clusters=2, init='k-means++', random_state=42)
 model.fit(X)
 clusters = model.fit_predict(X)
 
