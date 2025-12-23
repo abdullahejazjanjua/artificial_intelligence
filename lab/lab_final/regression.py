@@ -94,10 +94,10 @@ X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_
 
 model = Pipeline([
     ('pre', preprocessor),
-    # ('poly', PolynomialFeatures(degree=1)),
+    ('poly', PolynomialFeatures(degree=1)),
     # ('regression', LinearRegression())
     
-    # ('regression', DecisionTreeRegressor(max_depth=5, min_samples_leaf=2, random_state=42)),
+    ('regression', DecisionTreeRegressor(max_depth=5, min_samples_leaf=2, random_state=42)),
     
     # ('regression', RandomForestRegressor(n_estimators=100, max_depth=10, random_state=42))
     

@@ -1,6 +1,5 @@
 import argparse
 import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import warnings
@@ -10,11 +9,7 @@ from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.preprocessing import StandardScaler, OneHotEncoder, PolynomialFeatures
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
-from sklearn.metrics import (
-    classification_report, confusion_matrix, 
-    root_mean_squared_error, r2_score,
-    silhouette_score
-)
+from sklearn.metrics import confusion_matrix, silhouette_score
 
 # Models strictly from original scripts
 from sklearn.linear_model import LogisticRegression, LinearRegression
