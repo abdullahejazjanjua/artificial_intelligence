@@ -4,7 +4,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import warnings
 from pprint import pprint # For clean printing of dictionaries
-
+import sys
+import os
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.preprocessing import StandardScaler, OneHotEncoder, PolynomialFeatures
 from sklearn.compose import ColumnTransformer
@@ -22,18 +23,40 @@ from sklearn.ensemble import (
 )
 from sklearn.cluster import KMeans
 
-warnings.filterwarnings("ignore")
+def clean_data(df, threshold=0.5):
+    """
+    Drops columns with more than 'threshold' missing values.
+    Imputes remaining values to avoid row deletion.
+    """
+    initial_cols = df.columns.tolist()
+    
+    # 1. Drop columns with too many NaNs
+    limit = len(df) * threshold
+    df = df.dropna(axis=1, thresh=limit)
+    dropped_cols = set(initial_cols) - set(df.columns)
+    if dropped_cols:
+        print(f"Dropped columns due to >{threshold*100}% missing values: {list(dropped_cols)}")
 
-def clean_data(df):
-    """Handles missing values and duplicates."""
-    if df.isnull().sum().sum() > 0:
-        num_cols = df.select_dtypes(include='number').columns
-        df[num_cols] = df[num_cols].fillna(df[num_cols].mean())
-        df = df.dropna()
-    if df.duplicated().sum() > 0:
-        df = df.drop_duplicates().reset_index(drop=True)
+    # 2. Impute remaining numeric columns with mean
+    num_cols = df.select_dtypes(include='number').columns
+    df[num_cols] = df[num_cols].fillna(df[num_cols].mean())
+
+    # 3. Impute remaining categorical columns with mode
+    cat_cols = df.select_dtypes(exclude='number').columns
+    for col in cat_cols:
+        if df[col].isnull().any():
+            df[col] = df[col].fillna(df[col].mode()[0])
+
+    # Final safety check for duplicates
+    df = df.drop_duplicates().reset_index(drop=True)
+    
+    if len(df) == 0:
+        print("Error: Dataset is empty after cleaning. Check input file.")
+        sys.exit(1)
+        
     return df
 
+    
 def get_preprocessor(X):
     """Builds a processing pipeline for numeric and categorical features."""
     num_cols = X.select_dtypes(include="number").columns.tolist()
@@ -41,7 +64,7 @@ def get_preprocessor(X):
     return ColumnTransformer(
         transformers=[
             ('num', StandardScaler(), num_cols),
-            ('cat', OneHotEncoder(handle_unknown='ignore', drop='first'), cat_cols)
+            ('cat', OneHotEncoder(handle_unknown='ignore',drop='first', sparse_output=False), cat_cols)
         ]
     )
 
@@ -239,15 +262,24 @@ if __name__ == "__main__":
     parser.add_argument("--no-vis", action="store_true")
     args = parser.parse_args()
     
-    df = clean_data(pd.read_csv(args.dataset))
-    
-    if args.mode == 'clustering':
-        run_clustering(df.select_dtypes(include='number'), args.no_vis)
-    elif args.target:
-        X, y = df.drop(columns=[args.target]), df[args.target]
-        if args.mode == 'classification':
-            run_classification(X, y, args.no_vis)
+    try:
+        df_raw = pd.read_csv(args.dataset)
+        df = clean_data(df_raw)
+        
+        if args.mode == 'clustering':
+            run_clustering(df.select_dtypes(include='number'), args.no_vis)
+        elif args.target:
+            if args.target not in df.columns:
+                print(f"Error: Target column '{args.target}' not found in dataset.")
+                sys.exit(1)
+                
+            X, y = df.drop(columns=[args.target]), df[args.target]
+            
+            if args.mode == 'classification':
+                run_classification(X, y, args.no_vis)
+            else:
+                run_regression(X, y, args.no_vis)
         else:
-            run_regression(X, y, args.no_vis)
-    else:
-        print("Error: --target column is required for supervised learning.")
+            print("Error: --target column is required for supervised learning.")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
