@@ -8,25 +8,27 @@ from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import RandomForestRegressor, BaggingRegressor, VotingRegressor
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.feature_selection import mutual_info_regression
-from sklearn.metrics import root_mean_squared_error, r2_score
+from sklearn.metrics import root_mean_squared_error, r2_score, mean_absolute_error
 from sklearn.preprocessing import StandardScaler, OneHotEncoder, PolynomialFeatures
 
-data = pd.read_csv("data.csv")
+data = pd.read_csv("fire_risk_train.csv")
 
 if data.isnull().sum().sum() > 0:
     num_cols = data.select_dtypes(include='number').columns
     data[num_cols] = data[num_cols].fillna(data[num_cols].mean())
     data = data.dropna()
     print("NULL values found...fixing...")
-   
+    
 if data.duplicated().sum() > 0:
     data = data.drop_duplicates()
     data = data.reset_index(drop=True)
     print("Found duplicate rows...dropping...")
 
+target_col = 'fire_risk_score'
 
-X = data.iloc[:, :-1]
-Y = data.iloc[:, -1]
+Y = data[target_col]
+X = data.drop(columns=[target_col, 'fire_risk_level', 'random_noise'])
+
 columns = X.columns.tolist()
 
 
@@ -36,13 +38,17 @@ for col in temp_data.select_dtypes(exclude="number"):
 mi_scores = mutual_info_regression(temp_data, Y)
 
 columns_to_drop = []
+print("\n--- Column Name: Mutual Information Gain ---")
 for column, mi_score in zip(columns, mi_scores):
-    if mi_score < 0.2:
+    print(f"{column}: {mi_score}")
+    if mi_score < 0.01:
         columns_to_drop.append(column)
 
 X = X.drop(columns_to_drop, axis=1)
 columns = [c for c in columns if c not in columns_to_drop]
 
+
+print(f"\nKeeping {columns}")
 num_cols = 2
 num_rows = (len(X.columns) + 1) // num_cols
 
@@ -56,8 +62,10 @@ for idx, column in enumerate(columns):
 plt.tight_layout()
 plt.show()
 
+plt.figure(figsize=(12, 5))
 corr  = data.corr(numeric_only=True)
 sns.heatmap(corr, annot=True, cmap='coolwarm', fmt=".2f")
+plt.tight_layout()
 plt.show()
 
 fig, ax = plt.subplots(num_rows, num_cols, figsize=(12, 5))
@@ -86,10 +94,10 @@ X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_
 
 model = Pipeline([
     ('pre', preprocessor),
-    ('poly', PolynomialFeatures(degree=1)),
+    # ('poly', PolynomialFeatures(degree=1)),
     # ('regression', LinearRegression())
     
-    # ('regression', DecisionTreeRegressor(max_depth=3, min_samples_leaf=2, random_state=42)),
+    # ('regression', DecisionTreeRegressor(max_depth=5, min_samples_leaf=2, random_state=42)),
     
     # ('regression', RandomForestRegressor(n_estimators=100, max_depth=10, random_state=42))
     
@@ -101,20 +109,23 @@ model = Pipeline([
     #         random_state=42
     #     ))
     
-    ('regression', VotingRegressor(
-        estimators=[
-            ('m1', LinearRegression()),
-            ('m2', DecisionTreeRegressor(max_depth=3, min_samples_leaf=2, random_state=42)),
-            ('m3', RandomForestRegressor(n_estimators=100, max_depth=10, random_state=42))
-        ]
-    ))
+    # ('regression', VotingRegressor(
+    #     estimators=[
+    #         ('m1', LinearRegression()),
+    #         ('m2', DecisionTreeRegressor(max_depth=3, min_samples_leaf=2, random_state=42)),
+    #         ('m3', RandomForestRegressor(n_estimators=100, max_depth=10, random_state=42))
+    #     ],
+    #     weights=[1, 1, 1]
+    # ))
 ])
 
 model.fit(X_train, Y_train)
 y_pred = model.predict(X_test)
 
+
+print("\n--- Final Results ---")
 print(f"RMSE: {root_mean_squared_error(Y_test, y_pred):.2f}")
-print(f"R2 Score: {r2_score(Y_test, y_pred):.2f}")
+print(f"MAE: {mean_absolute_error(Y_test, y_pred):.2f}")
 
 # param_grid = {
 #     'regression__m2__max_depth': [3, 5, 10],

@@ -13,7 +13,7 @@ from sklearn.ensemble import BaggingClassifier, RandomForestClassifier, BaggingR
 from sklearn.metrics import classification_report, confusion_matrix
 
 
-data = pd.read_csv("heart.csv")
+data = pd.read_csv("diabetes.csv")
 
 if data.isnull().sum().sum() > 0:
     cols = data.select_dtypes(include="number").columns
@@ -25,8 +25,10 @@ if data.duplicated().sum() > 0:
     data = data.drop_duplicates()
     print("Found duplicate rows...droping...")
     
-X = data.iloc[:, :-1]
-Y = data.iloc[:, -1]
+target_col = 'Outcome'
+
+Y = data[target_col]
+X = data.drop(columns=[target_col])
 
 columns = X.columns.tolist()
 
@@ -63,9 +65,9 @@ plt.tight_layout()
 plt.show()
 
 
-plt.figure(figsize=(12, 15))
-corr = data.corr(numeric_only=True)
-sns.heatmap(corr, annot=True, fmt=".2f")
+plt.figure(figsize=(12, 5))
+corr  = data.corr(numeric_only=True)
+sns.heatmap(corr, annot=True, cmap='coolwarm', fmt=".2f")
 plt.tight_layout()
 plt.show()
 
@@ -82,14 +84,14 @@ preprocessor = ColumnTransformer(
 
 model = Pipeline([
     ('pre', preprocessor),
-    ('poly', PolynomialFeatures(degree=1)),
+    ('poly', PolynomialFeatures(degree=2)),
     # ('classify', LogisticRegression())
     
     # ('classify', RandomForestClassifier(n_estimators=100, max_depth=10, random_state=42))
     
     # ('classify', DecisionTreeClassifier(max_depth=5, min_samples_leaf=5, random_state=42))
     
-    ('classify',  KNeighborsClassifier(n_neighbors=5)) 
+    # ('classify',  KNeighborsClassifier(n_neighbors=5)) 
     
     # ('classify', BaggingClassifier(
     #         estimator=DecisionTreeClassifier(max_depth=5), 
@@ -99,14 +101,14 @@ model = Pipeline([
     #         random_state=42
     #     ))
     
-    # ('classfiy', VotingClassifier(
-    #     estimators=[
-    #         ('m1', LogisticRegression()),
-    #         ('m2', DecisionTreeClassifier(max_depth=5, min_samples_leaf=5, random_state=42)),
-    #         ('m3', RandomForestClassifier(n_estimators=100, max_depth=10, random_state=42)),
-    #         ('m4', KNeighborsClassifier(n_neighbors=5))
-    #     ]
-    # ))
+    ('classfiy', VotingClassifier(
+        estimators=[
+            ('m1', LogisticRegression()),
+            ('m2', DecisionTreeClassifier(max_depth=5, min_samples_leaf=5, random_state=42)),
+            ('m3', RandomForestClassifier(n_estimators=100, max_depth=10, random_state=42)),
+            ('m4', KNeighborsClassifier(n_neighbors=5))
+        ],
+    ))
 ])
 
 X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
