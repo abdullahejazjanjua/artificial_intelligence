@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import warnings
+from pprint import pprint # For clean printing of dictionaries
 
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.preprocessing import StandardScaler, OneHotEncoder, PolynomialFeatures
@@ -29,7 +30,7 @@ from sklearn.cluster import KMeans
 warnings.filterwarnings("ignore")
 
 def clean_data(df):
-    """Handles missing values and duplicates from the source scripts."""
+    """Handles missing values and duplicates."""
     if df.isnull().sum().sum() > 0:
         num_cols = df.select_dtypes(include='number').columns
         df[num_cols] = df[num_cols].fillna(df[num_cols].mean())
@@ -52,6 +53,10 @@ def get_preprocessor(X):
 def run_classification(X, y, no_vis):
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     pre = get_preprocessor(X)
+    
+    # Tracking dictionaries
+    phase1_params = {}
+    phase2_params = {}
     
     print("\n--- PHASE 1: Optimizing Base Models ---")
     base_configs = {
@@ -84,6 +89,7 @@ def run_classification(X, y, no_vis):
         score = gs.score(X_test, y_test)
         best_base_models[name] = gs.best_estimator_.named_steps['clf']
         base_scores[name] = score
+        phase1_params[name] = gs.best_params_
         print(f"Best {name} Accuracy: {score:.4f}")
 
     print("\n--- PHASE 2: Optimizing Ensembles ---")
@@ -114,10 +120,25 @@ def run_classification(X, y, no_vis):
         score = gs.score(X_test, y_test)
         final_results[name] = score
         model_objects[name] = gs.best_estimator_
+        phase2_params[name] = gs.best_params_
         print(f"Best {name} Ensemble Accuracy: {score:.4f}")
 
     winner = max(final_results, key=final_results.get)
     print(f"\n{'='*50}\nFINAL WINNER: {winner} | SCORE: {final_results[winner]:.4f}\n{'='*50}")
+
+    # Logic to print hyperparams based on which phase won
+    if winner in phase2_params:
+        print(f"--- {winner} Ensemble Hyperparameters ---")
+        pprint(phase2_params[winner])
+        print(f"\n--- Underlying Base Model Hyperparameters (from Phase 1) ---")
+        if winner == 'Bagging':
+             pprint({ "DecisionTree": phase1_params['DecisionTree'] })
+        elif winner == 'Voting':
+             pprint(phase1_params)
+    else:
+        print(f"--- {winner} Hyperparameters ---")
+        pprint(phase1_params[winner])
+    print(f"{'='*50}\n")
 
     if not no_vis:
         y_pred = model_objects[winner].predict(X_test)
@@ -129,6 +150,9 @@ def run_classification(X, y, no_vis):
 def run_regression(X, y, no_vis):
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     pre = get_preprocessor(X)
+    
+    phase1_params = {}
+    phase2_params = {}
 
     print("\n--- PHASE 1: Optimizing Base Regression Models ---")
     base_configs = {
@@ -153,6 +177,7 @@ def run_regression(X, y, no_vis):
         r2 = gs.score(X_test, y_test)
         best_base_regs[name] = gs.best_estimator_.named_steps['reg']
         reg_scores[name] = r2
+        phase1_params[name] = gs.best_params_
         print(f"Best {name} R2 Score: {r2:.4f}")
 
     print("\n--- PHASE 2: Optimizing Regression Ensembles ---")
@@ -178,10 +203,24 @@ def run_regression(X, y, no_vis):
         
         r2 = gs.score(X_test, y_test)
         final_results[name] = r2
+        phase2_params[name] = gs.best_params_
         print(f"Best {name} Ensemble R2: {r2:.4f}")
 
     winner = max(final_results, key=final_results.get)
     print(f"\n{'='*50}\nFINAL WINNER: {winner} | R2 SCORE: {final_results[winner]:.4f}\n{'='*50}")
+
+    if winner in phase2_params:
+        print(f"--- {winner} Ensemble Hyperparameters ---")
+        pprint(phase2_params[winner])
+        print("\n--- Underlying Base Model Hyperparameters (from Phase 1) ---")
+        if winner == 'Bagging':
+             pprint({ "DecisionTree": phase1_params['DecisionTree'] })
+        elif winner == 'Voting':
+             pprint(phase1_params)
+    else:
+        print(f"--- {winner} Hyperparameters ---")
+        pprint(phase1_params[winner])
+    print(f"{'='*50}\n")
 
 def run_clustering(X, no_vis):
     pre = get_preprocessor(X)
